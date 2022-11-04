@@ -10,7 +10,7 @@ let sqlite3 = require('sqlite3');
 
 let public_dir = path.join(__dirname, 'public');
 let template_dir = path.join(__dirname, 'templates');
-let db_filename = path.join(__dirname, '/db/data.sqlite3');
+let db_filename = path.join(__dirname, '/db/sea-level-data.sqlite3');
 
 let app = express();
 let port = 8000;
@@ -31,76 +31,56 @@ app.use(express.static(public_dir));
 
 // GET request handler for home page '/' (redirect to desired route)
 app.get('/', (req, res) => {
-    let home = '/temperature_by_year/1991'; // <-- change this
+    let home = '/region/central_east_atlantic'; // <-- change this
     res.redirect(home);
 });
 
 // GET request handler for cereal from a specific month
-app.get('/temperature_by_year/:year', (req, res) => {
+app.get('/region/:region', (req, res) => {
         fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
-            // modify `template` and send response
-            // this will require a query to the SQL database
-            let query = 'SELECT * FROM Sheet1 where year = ?';
-            let year = req.params.year;
-            //TODO: verify 0 or 1
-            db.all(query, [year], (err, rows) => {
-                let script = '<script>'+
-                '        const labels = %%LABELS%%;'+
-                '      '+
-                '        const data = {'+
-                '          labels: labels,'+
-                '          datasets: [' +
-                    '{'+
-                    '            label: \'Max Temperature\','+
-                    '            backgroundColor: \'rgb(255, 99, 132)\','+
-                    '            borderColor: \'rgb(255, 99, 132)\','+
-                    '            data: %%MAX%%,'+
-                    '          },' +  
-                    '{'+
-                    '            label: \'Average Temperature\','+
-                    '            backgroundColor: \'rgb(255, 0, 255)\','+
-                    '            borderColor: \'rgb(255, 0, 255)\','+
-                    '            data: %%AVG%%,'+
-                    '          },' +   
-                    '{'+
-                    '            label: \'Min Temperature\','+
-                    '            backgroundColor: \'rgb(135, 206, 235)\','+
-                    '            borderColor: \'rgb(135, 206, 250)\','+
-                    '            data: %%MIN%%,'+
-                    '          },' + 
-                          ']'+
-                '        };'+
-                '      '+
-                '        const config = {'+
-                '          type: \'line\','+
-                '          data: data,'+
-                '          options: {}'+
-                '        };'+
-                '        const ctx = document.getElementById(\'myChart\').getContext(\'2d\');'+
-                '        const myChart = new Chart('+
-                '            ctx,'+
-                '            config'+
-                '        );'+
-                '    </script>';
-                let labels = '[' + rows.map((row) => {
-                    return '\'' + row.month + '/' + row.day + '\'';
-                }) + ']';
-                let avg = '[' + rows.map((row) => {
-                    return row['average temperature'];
-                }) + ']';
-                let max = '[' + rows.map((row) => {
-                    return row['maximum temperature'];
-                }) + ']';
-                let min = '[' + rows.map((row) => {
-                    return row['minimum temperature'];
-                }) + ']';
+            let query = 'SELECT * FROM Sheet3 where region = ?';
+            let region = capitalizeFirstLetters(req.params.region.replaceAll('_', ' '));
+            db.all(query, [region], (err, rows) => {
+                let script = '<script>\n'+
+                '        const labels = %%LABELS%%;\n'+
+                '      \n'+
+                '        const data = {\n'+
+                '          labels: labels,\n'+
+                '          datasets: [{\n'+
+                '            label: \'Sea Level\',\n'+
+                '            backgroundColor: \'rgb(255, 99, 132)\',\n'+
+                '            borderColor: \'rgb(255, 99, 132)\',\n'+
+                '            data: %%DATA%%,\n'+
+                '          },\n' +  
+                '         ]\n'+
+                '        };\n'+
+                '      \n'+
+                '        const config = {\n'+
+                '          type: \'line\',\n'+
+                '          data: data,\n'+
+                '          options: {}\n'+
+                '        };\n'+
+                '        const ctx = document.getElementById(\'myChart\').getContext(\'2d\');\n'+
+                '        const myChart = new Chart(\n'+
+                '            ctx,\n'+
+                '            config\n'+
+                '        );\n'+
+                '    </script>\n';
+                let labels = [];
+                let data = [];
+                let obj = rows[0];
+                for(let key in obj) {
+                    if(key === 'region') continue;
+                    labels.push('\'' + key + '\'');
+                    data.push(obj[key]);
+                }
+                labels = '[' + labels.toString() + ']';
+                data = '[' + data.join(',') + ']';
                 script = script.replace('%%LABELS%%', labels);
-                script = script.replace('%%AVG%%', avg);
-                script = script.replace('%%MAX%%', max);
-                script = script.replace('%%MIN%%', min);
+                script = script.replace('%%DATA%%', data);
                 template = template.replace('%%SCRIPT%%', script);
                 if(rows.length === 0) {
-                    noDataHandler(res, 'year', year);
+                    noDataHandler(res, 'region', region);
                 } else {
                     res.status(200).type('html').send(template);
                 }
@@ -108,6 +88,8 @@ app.get('/temperature_by_year/:year', (req, res) => {
      
         });
 });
+
+const capitalizeFirstLetters = (str) => str.replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase());
 
 const noDataHandler = (res, type, value) => {
     let template = '<!DOCTYPE html>\n'+
