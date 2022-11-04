@@ -3,23 +3,23 @@
     "version": "0.0.0",
     "description": "Dynamic Web Server using Node JS",
     "author": {
-        "name": "",
-        "email": ""
+        "name": "Hieu Le",
+        "email": "le009660@stthomas.edu"
     },
     "contributors": [
         {
-            "name": "",
-            "email": ""
+            "name": "Ivan Jimenez",
+            "email": "jime3462@stthomas.edu"
         },
         {
-            "name": "",
-            "email": ""
+            "name": "Chris Rooney",
+            "email": "roon4169@stthomas.edu"
         }
     ],
     "main": "server.js",
     "repository": {
         "type": "git",
-        "url": ""
+        "url": "https://github.com/hieule21/dynamic-web-server"
     },
     "dependencies": {
         "chart.js": "^3.9.1",
