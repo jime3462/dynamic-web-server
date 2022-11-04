@@ -1,7 +1,6 @@
 // Built-in Node.js modules
 let fs = require('fs');
 let path = require('path');
-const Chart = require('chart.js');
 
 // NPM modules
 let express = require('express');
@@ -31,44 +30,26 @@ app.use(express.static(public_dir));
 
 // GET request handler for home page '/' (redirect to desired route)
 app.get('/', (req, res) => {
-    let home = '/region/central_east_atlantic'; // <-- change this
+    let home = '/region/central_east_atlantic'; 
     res.redirect(home);
 });
 
-// GET request handler for cereal from a specific month
+// GET request handler for sea level data from a specific region
 app.get('/region/:region', (req, res) => {
         fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
-            let query = 'SELECT * FROM Sheet3 where region = ?';
-            let region = capitalizeFirstLetters(req.params.region.replaceAll('_', ' '));
-            db.all(query, [region], (err, rows) => {
-                let script = '<script>\n'+
-                '        const labels = %%LABELS%%;\n'+
-                '      \n'+
-                '        const data = {\n'+
-                '          labels: labels,\n'+
-                '          datasets: [{\n'+
-                '            label: \'Sea Level\',\n'+
-                '            backgroundColor: \'rgb(255, 99, 132)\',\n'+
-                '            borderColor: \'rgb(255, 99, 132)\',\n'+
-                '            data: %%DATA%%,\n'+
-                '          },\n' +  
-                '         ]\n'+
-                '        };\n'+
-                '      \n'+
-                '        const config = {\n'+
-                '          type: \'line\',\n'+
-                '          data: data,\n'+
-                '          options: {}\n'+
-                '        };\n'+
-                '        const ctx = document.getElementById(\'myChart\').getContext(\'2d\');\n'+
-                '        const myChart = new Chart(\n'+
-                '            ctx,\n'+
-                '            config\n'+
-                '        );\n'+
-                '    </script>\n';
+            let query = 'SELECT * FROM Sheet3';
+            let rawRegion = req.params.region;
+            let readableFormatRegion = convertToReadableFormat(req.params.region);
+            db.all(query, [], (err, rows) => {
+                let regions = rows.map(row => convertFromReadableFormat(row.region));
+                if(regions.indexOf(rawRegion) === -1) {
+                    noDataHandler(res, 'region', readableFormatRegion);
+                    return;
+                }
+
                 let labels = [];
                 let data = [];
-                let obj = rows[0];
+                let obj = rows.filter(row => row.region === readableFormatRegion)[0];
                 for(let key in obj) {
                     if(key === 'region') continue;
                     labels.push('\'' + key + '\'');
@@ -76,21 +57,79 @@ app.get('/region/:region', (req, res) => {
                 }
                 labels = '[' + labels.toString() + ']';
                 data = '[' + data.join(',') + ']';
-                script = script.replace('%%LABELS%%', labels);
-                script = script.replace('%%DATA%%', data);
-                template = template.replace('%%SCRIPT%%', script);
-                if(rows.length === 0) {
-                    noDataHandler(res, 'region', region);
-                } else {
-                    res.status(200).type('html').send(template);
-                }
+
+                template = template.replace('%%SCRIPT%%', generateChart(labels, data));
+                template = template.replace('%%LINKS%%', generatePrevAndNextLinks('region', regions, rawRegion));
+                
+                res.status(200).type('html').send(template);
             });
-     
+
         });
 });
 
+//Generate chart
+const generateChart = (labels, data) => {
+    let script = '<script>\n'+
+    '        const labels = %%LABELS%%;\n'+
+    '      \n'+
+    '        const data = {\n'+
+    '          labels: labels,\n'+
+    '          datasets: [{\n'+
+    '            label: \'Sea Level\',\n'+
+    '            backgroundColor: \'rgb(255, 99, 132)\',\n'+
+    '            borderColor: \'rgb(255, 99, 132)\',\n'+
+    '            data: %%DATA%%,\n'+
+    '          },\n' +  
+    '         ]\n'+
+    '        };\n'+
+    '      \n'+
+    '        const config = {\n'+
+    '          type: \'line\',\n'+
+    '          data: data,\n'+
+    '          options: {}\n'+
+    '        };\n'+
+    '        const ctx = document.getElementById(\'myChart\').getContext(\'2d\');\n'+
+    '        const myChart = new Chart(\n'+
+    '            ctx,\n'+
+    '            config\n'+
+    '        );\n'+
+    '    </script>\n';
+    script = script.replace('%%LABELS%%', labels);
+    script = script.replace('%%DATA%%', data);
+    return script;
+}
+
+
+//Generate previous and next links
+const generatePrevAndNextLinks = (dataType, dataArray, currentData) => {
+    let curIdx = dataArray.indexOf(currentData);
+    console.log(currentData);
+    let prevHref = '';
+    let prevStyle = '';
+    let nextHref = '';
+    let nextStyle = '';
+    if(curIdx <= 0) {
+        prevStyle = 'pointer-events: none; text-decoration: line-through; color: black;';
+    } else if(curIdx >= dataArray.length - 1) {
+        nextStyle = 'pointer-events: none; text-decoration: line-through; color: black;';
+    } 
+    if (curIdx >= 0 && curIdx < dataArray.length) {
+        prevHref = `http://localhost:8000/${dataType}/${dataArray[curIdx - 1]}`;
+        nextHref = `http://localhost:8000/${dataType}/${dataArray[curIdx + 1]}`;
+    }
+    return `<a href="${prevHref}" style="${prevStyle}">Previous</a> - <a href="${nextHref}" style="${nextStyle}">Next</a>`
+}
+
+//Example: Converting Southwest Pacific to southwest_pacific
+const convertFromReadableFormat = (str) => str.toLowerCase().replaceAll(' ', '_');
+
+//Example: Converting Southwest Pacific to southwest_pacific
+const convertToReadableFormat = (str) => capitalizeFirstLetters(str.replaceAll('_', ' '));
+
+//Example: Converting south west pacific to South West Pacific
 const capitalizeFirstLetters = (str) => str.replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase());
 
+//Not found resources handler
 const noDataHandler = (res, type, value) => {
     let template = '<!DOCTYPE html>\n'+
                     '<html lang="en">\n'+
