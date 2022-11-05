@@ -70,22 +70,18 @@ app.get('/region/:region', (req, res) => {
 // GET request handler for sea level data from a specific region
 app.get('/year/:year', (req, res) => {
     fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
-        let query = 'SELECT * FROM Sheet1 where year = ?';
+        let query = 'SELECT * FROM Sheet1';
         let year = req.params.year;
-        db.all(query, [year], (err, rows) => {
-            let total = {
-                'Alaska': 0,
-                'Central East Atlantic': 0,
-                'Central West Pacific': 0,
-                'Northeast Atlantic': 0,
-                'Northeast Forest': 0,
-                'Northern Plains': 0,
-                'Northwest Pacific': 0,
-                'Southeast Atlantic': 0,
-                'Southern Plains': 0,
-                'Southwest Pacific': 0
-            };
-
+        db.all(query, [], (err, rows) => {
+            let years = Array.from(new Set(rows.map((row) => row.year + '')));
+            rows = rows.filter((row) => row.year == year);
+            let regions = [];
+            let total = {};
+            for (let key in rows[0]) {
+                if(key === 'month' || key === 'year') continue;
+                total[key] = 0;
+                regions.push(key);
+            }
             rows.map((row) => {
                 for (let region in total) {
                     total[region] += row[region];
@@ -101,6 +97,7 @@ app.get('/year/:year', (req, res) => {
             data = '[' + data.toString() + ']';
 
             template = template.replace('%%SCRIPT%%', generateChart('bar', labels, data));
+            template = template.replace('%%LINKS%%', generatePrevAndNextLinks('year', years, year));
             
             res.status(200).type('html').send(template);
         });
@@ -144,7 +141,6 @@ const generateChart = (chartType, labels, data) => {
 //Generate previous and next links
 const generatePrevAndNextLinks = (dataType, dataArray, currentData) => {
     let curIdx = dataArray.indexOf(currentData);
-    console.log(currentData);
     let prevHref = '';
     let prevStyle = '';
     let nextHref = '';
