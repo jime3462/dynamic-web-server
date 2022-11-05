@@ -9,7 +9,7 @@ let sqlite3 = require('sqlite3');
 
 let public_dir = path.join(__dirname, 'public');
 let template_dir = path.join(__dirname, 'templates');
-let db_filename = path.join(__dirname, '/db/sea-level-data.sqlite3');
+let db_filename = path.join(__dirname, '/db/data.sqlite3');
 
 let app = express();
 let port = 8000;
@@ -35,9 +35,9 @@ app.get('/', (req, res) => {
 });
 
 // GET request handler for sea level data from a specific region
-app.get('/region/:region', (req, res) => {
+app.get('/sea_level_by_region/:region', (req, res) => {
         fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
-            let query = 'SELECT * FROM Sheet3';
+            let query = 'SELECT * FROM SeaLevel2';
             let rawRegion = req.params.region;
             let readableFormatRegion = convertToReadableFormat(req.params.region);
             db.all(query, [], (err, rows) => {
@@ -58,23 +58,29 @@ app.get('/region/:region', (req, res) => {
                 labels = '[' + labels.toString() + ']';
                 data = '[' + data.toString() + ']';
 
-                template = template.replace('%%SCRIPT%%', generateChart('line', labels, data));
-                template = template.replace('%%LINKS%%', generatePrevAndNextLinks('region', regions, rawRegion));
-                
+                let labelName = 'Sea Level';
+                template = template.replace('%%SCRIPT%%', generateChart('line', labelName, labels, data));
+                template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_region', regions, rawRegion));
+                template = template.replace('%%LABEL_NAME%%', labelName);
                 res.status(200).type('html').send(template);
             });
 
         });
 });
 
-// GET request handler for sea level data from a specific region
-app.get('/year/:year', (req, res) => {
+// GET request handler for sea level data from a specific year
+app.get('/sea_level_by_year/:year', (req, res) => {
     fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
-        let query = 'SELECT * FROM Sheet1';
+        let query = 'SELECT * FROM SeaLevel1';
         let year = req.params.year;
         db.all(query, [], (err, rows) => {
             let years = Array.from(new Set(rows.map((row) => row.year + '')));
             rows = rows.filter((row) => row.year == year);
+            let labelName = 'Sea Level by year';
+            if(years.indexOf(year) === -1) {
+                noDataHandler(res, labelName, year);
+                return;
+            }
             let regions = [];
             let total = {};
             for (let key in rows[0]) {
@@ -96,8 +102,9 @@ app.get('/year/:year', (req, res) => {
             labels = '[' + labels.toString() + ']';
             data = '[' + data.toString() + ']';
 
-            template = template.replace('%%SCRIPT%%', generateChart('bar', labels, data));
-            template = template.replace('%%LINKS%%', generatePrevAndNextLinks('year', years, year));
+            template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
+            template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_year', years, year));
+            template = template.replace('%%LABEL_NAME%%', labelName);
             
             res.status(200).type('html').send(template);
         });
@@ -105,15 +112,59 @@ app.get('/year/:year', (req, res) => {
     });
 });
 
+// GET request handler for Consecutive Dry Days (CDD) data from a specific year
+app.get('/cdd_by_year/:year', (req, res) => {
+    fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
+        let query = 'SELECT * FROM CDD';
+        let year = req.params.year;
+        db.all(query, [], (err, rows) => {
+            let years = Array.from(new Set(rows.map((row) => row.year + '')));
+            rows = rows.filter((row) => row.year == year);
+            let labelName = 'Consecutive Dry Days by year';
+            if(years.indexOf(year) === -1) {
+                noDataHandler(res, labelName, year);
+                return;
+            }
+            let regions = [];
+            let total = {};
+            for (let key in rows[0]) {
+                if(key === 'month' || key === 'year') continue;
+                total[key] = 0;
+                regions.push(key);
+            }
+            rows.map((row) => {
+                for (let region in total) {
+                    total[region] += row[region];
+                }
+            })
+            let labels = [];
+            let data = [];
+            for(let region in total) {
+                labels.push(('\'' + region + '\''));
+                data.push(total[region]/12);
+            }
+            labels = '[' + labels.toString() + ']';
+            data = '[' + data.toString() + ']';
+            
+            template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
+            template = template.replace('%%LINKS%%', generatePrevAndNextLinks('cdd_by_year', years, year));
+            template = template.replace('%%LABEL_NAME%%', labelName);
+
+            res.status(200).type('html').send(template);
+        });
+
+    });
+});
+
 //Generate chart
-const generateChart = (chartType, labels, data) => {
+const generateChart = (chartType, labelName, labels, data) => {
     let script = '<script>\n'+
     '        const labels = %%LABELS%%;\n'+
     '      \n'+
     '        const data = {\n'+
     '          labels: labels,\n'+
     '          datasets: [{\n'+
-    '            label: \'Sea Level\',\n'+
+    '            label: \'' + labelName + '\',\n'+
     '            backgroundColor: \'rgb(255, 99, 132)\',\n'+
     '            borderColor: \'rgb(255, 99, 132)\',\n'+
     '            data: %%DATA%%,\n'+
