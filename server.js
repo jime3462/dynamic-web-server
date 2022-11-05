@@ -56,9 +56,9 @@ app.get('/region/:region', (req, res) => {
                     data.push(obj[key]);
                 }
                 labels = '[' + labels.toString() + ']';
-                data = '[' + data.join(',') + ']';
+                data = '[' + data.toString() + ']';
 
-                template = template.replace('%%SCRIPT%%', generateChart(labels, data));
+                template = template.replace('%%SCRIPT%%', generateChart('line', labels, data));
                 template = template.replace('%%LINKS%%', generatePrevAndNextLinks('region', regions, rawRegion));
                 
                 res.status(200).type('html').send(template);
@@ -67,8 +67,49 @@ app.get('/region/:region', (req, res) => {
         });
 });
 
+// GET request handler for sea level data from a specific region
+app.get('/year/:year', (req, res) => {
+    fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
+        let query = 'SELECT * FROM Sheet1 where year = ?';
+        let year = req.params.year;
+        db.all(query, [year], (err, rows) => {
+            let total = {
+                'Alaska': 0,
+                'Central East Atlantic': 0,
+                'Central West Pacific': 0,
+                'Northeast Atlantic': 0,
+                'Northeast Forest': 0,
+                'Northern Plains': 0,
+                'Northwest Pacific': 0,
+                'Southeast Atlantic': 0,
+                'Southern Plains': 0,
+                'Southwest Pacific': 0
+            };
+
+            rows.map((row) => {
+                for (let region in total) {
+                    total[region] += row[region];
+                }
+            })
+            let labels = [];
+            let data = [];
+            for(let region in total) {
+                labels.push(('\'' + region + '\''));
+                data.push(total[region]/12);
+            }
+            labels = '[' + labels.toString() + ']';
+            data = '[' + data.toString() + ']';
+
+            template = template.replace('%%SCRIPT%%', generateChart('bar', labels, data));
+            
+            res.status(200).type('html').send(template);
+        });
+
+    });
+});
+
 //Generate chart
-const generateChart = (labels, data) => {
+const generateChart = (chartType, labels, data) => {
     let script = '<script>\n'+
     '        const labels = %%LABELS%%;\n'+
     '      \n'+
@@ -84,7 +125,7 @@ const generateChart = (labels, data) => {
     '        };\n'+
     '      \n'+
     '        const config = {\n'+
-    '          type: \'line\',\n'+
+    '          type: \'' + chartType +'\',\n'+
     '          data: data,\n'+
     '          options: {}\n'+
     '        };\n'+
