@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climate Data</title>
+  <link rel="stylesheet" href="/css/foundation.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <script rel="application/javascript"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
@@ -10,13 +14,27 @@
     <div style="display: flex; justify-content: center;">
 
         <div style="height: 50vh; width: 80vw;">
-            <h2>View sea level data by <a href="http://localhost:8000/sea_level_by_region/central_east_atlantic">region</a>, 
-                <a href="http://localhost:8000/sea_level_by_month/1">month</a>, <a href="http://localhost:8000/sea_level_by_year/1991">year</a>
-                , or View Consecutive Dry Days data by <a href="http://localhost:8000/cdd_by_year/1961">year</a></h2>
+            <h2><b>View data of <a href="#">%%LABEL_NAME%%</a></b>
+                <ul class="dropdown">
+                    <li><a href="http://localhost:8000/sea_level_by_region/alaska">Sea Level by Region</a></li>
+                    <li><a href="http://localhost:8000/sea_level_by_year/1961">Sea Level by Year</a></li>
+                    <li><a href="http://localhost:8000/sea_level_by_month/1">Sea Level by Month</a></li>
+                    <li><a href="http://localhost:8000/cdd_by_year/1961">Consecutive Dry Days by Year</a></li>
+                </ul>
+            </h2>
+          
+            <h3>%%SORT%%</h3>
+          
             %%LINKS%%
             <canvas id="myChart" width="250" height="150"></canvas>
         </div>
     </div>
     %%SCRIPT%%
+  
+    <script src="js/vendor.js"></script>
+    <script src="js/foundation.js"></script>
+    <script type="application/javascript">
+        $(document).foundation();
+    </script>
 </body>
 </html>
