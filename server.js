@@ -112,6 +112,54 @@ app.get('/sea_level_by_year/:year', (req, res) => {
     });
 });
 
+// GET request handler for sea level data from a specific month
+app.get('/sea_level_by_month/:month', (req, res) => {
+    fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
+        let query = 'SELECT * FROM SeaLevel1';
+        let month = req.params.month;
+        db.all(query, [], (err, rows) => {
+            let months = Array.from(new Set(rows.map((row) => row.month + '')));
+            rows = rows.filter((row) => row.month == month);
+            let labelName = 'Sea Level by month';
+            if(months.indexOf(month) === -1) {
+                noDataHandler(res, labelName, month);
+                return;
+            }
+            let regions = [];
+            let total = {};
+            for (let key in rows[0]) {
+                if(key === 'month' || key === 'year') continue;
+                total[key] = 0;
+                regions.push(key);
+            }
+            rows.map((row) => {
+                for (let region in total) {
+                    total[region] += row[region];
+                }
+            })
+            let labels = [];
+            let data = [];
+            for(let region in total) {
+                labels.push(('\'' + region + '\''));
+                if(month > 5) {
+                    data.push(total[region]/60);
+                } else {
+                    data.push(total[region]/61);
+                }
+            }
+            labels = '[' + labels.toString() + ']';
+            data = '[' + data.toString() + ']';
+
+            template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
+            template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_month', months, month));
+            template = template.replace('%%LABEL_NAME%%', labelName);
+            
+            res.status(200).type('html').send(template);
+        });
+
+    });
+});
+
 // GET request handler for Consecutive Dry Days (CDD) data from a specific year
 app.get('/cdd_by_year/:year', (req, res) => {
     fs.readFile(path.join(template_dir, 'home.html'), 'utf8', (err, template) => {
