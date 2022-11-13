@@ -58,10 +58,11 @@ app.get('/sea_level_by_region/:region', (req, res) => {
                 labels = '[' + labels.toString() + ']';
                 data = '[' + data.toString() + ']';
 
-                let labelName = 'Sea Level';
+                let labelName = 'Sea Level by region';
                 template = template.replace('%%SCRIPT%%', generateChart('line', labelName, labels, data));
                 template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_region', regions, rawRegion));
                 template = template.replace('%%LABEL_NAME%%', labelName);
+                template = template.replace('%%SORT%%', readableFormatRegion);
                 res.status(200).type('html').send(template);
             });
 
@@ -105,6 +106,7 @@ app.get('/sea_level_by_year/:year', (req, res) => {
             template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
             template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_year', years, year));
             template = template.replace('%%LABEL_NAME%%', labelName);
+            template = template.replace('%%SORT%%', 'Year: ' + year);
             
             res.status(200).type('html').send(template);
         });
@@ -153,6 +155,7 @@ app.get('/sea_level_by_month/:month', (req, res) => {
             template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
             template = template.replace('%%LINKS%%', generatePrevAndNextLinks('sea_level_by_month', months, month));
             template = template.replace('%%LABEL_NAME%%', labelName);
+            template = template.replace('%%SORT%%', 'Month: ' + month);
             
             res.status(200).type('html').send(template);
         });
@@ -197,6 +200,7 @@ app.get('/cdd_by_year/:year', (req, res) => {
             template = template.replace('%%SCRIPT%%', generateChart('bar', labelName, labels, data));
             template = template.replace('%%LINKS%%', generatePrevAndNextLinks('cdd_by_year', years, year));
             template = template.replace('%%LABEL_NAME%%', labelName);
+            template = template.replace('%%SORT%%', 'Year: ' + year);
 
             res.status(200).type('html').send(template);
         });
