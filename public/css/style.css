@@ -1,0 +1,56 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+html {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 100%;
+}
+
+body {
+    background-color: rgb(121, 225, 234);
+}
+
+canvas {
+    background-color: aliceblue;
+}
+
+a {
+    color: black;
+}
+
+ul{
+    list-style: none;
+}
+
+ul li {
+    display: inline-block;
+}
+
+ul li a {
+    display: block;
+    text-decoration: none;
+    font-size: 20px;
+    text-align: center;
+}
+
+ul.dropdown li{
+    display: block;
+    position: relative;
+}
+
+ul.dropdown {
+    width: 60%;
+    position: absolute;
+    z-index: 999;
+    display: none;
+}
+
+h2 a:hover {
+    background: lightblue;
+}
+
+h2:hover ul.dropdown{
+    display: block;
+}
