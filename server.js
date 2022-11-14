@@ -249,9 +249,9 @@ const generatePrevAndNextLinks = (dataType, dataArray, currentData) => {
     let nextHref = '';
     let nextStyle = '';
     if(curIdx <= 0) {
-        prevStyle = 'pointer-events: none; text-decoration: line-through; color: black;';
+        prevStyle = 'pointer-events: none; text-decoration: line-through; color: black; display: none;';
     } else if(curIdx >= dataArray.length - 1) {
-        nextStyle = 'pointer-events: none; text-decoration: line-through; color: black;';
+        nextStyle = 'pointer-events: none; text-decoration: line-through; color: black; display: none;';
     } 
     if (curIdx >= 0 && curIdx < dataArray.length) {
         prevHref = `http://localhost:8000/${dataType}/${dataArray[curIdx - 1]}`;
