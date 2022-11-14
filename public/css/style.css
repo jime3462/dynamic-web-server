@@ -18,10 +18,13 @@ canvas {
 
 a {
     color: black;
+    width: 500px;
+    position: relative;
 }
 
 ul{
     list-style: none;
+    position: relative;
 }
 
 ul li {
@@ -41,7 +44,7 @@ ul.dropdown li{
 }
 
 ul.dropdown {
-    width: 60%;
+    width: 40%;
     position: absolute;
     z-index: 999;
     display: none;
@@ -53,4 +56,5 @@ h2 a:hover {
 
 h2:hover ul.dropdown{
     display: block;
+    background: lightblue;
 }
